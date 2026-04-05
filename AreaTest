@@ -12,9 +12,9 @@ AREAS = {
         "color": "#00ff88"
     },
     "Kalan tarkkailu": {
-        "x": 700,
-        "y": 500,
-        "w": 220,
+        "x": 445,
+        "y": 80 ,
+        "w": 635,
         "h": 80,
         "color": "#00bfff"
     },
@@ -26,10 +26,10 @@ AREAS = {
         "color": "#ffd700"
     },
     "Palkin lopun tarkkailu": {
-        "x": 1050,
-        "y": 600,
-        "w": 120,
-        "h": 80,
+        "x": 950,
+        "y": 150,
+        "w": 20,
+        "h": 50,
         "color": "#ff4d4d"
     },
 }
