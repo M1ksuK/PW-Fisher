@@ -1,0 +1,126 @@
+import time
+import numpy as np
+from PIL import ImageGrab
+import keyboard
+import pydirectinput
+
+# =========================
+# ASETUKSET
+# =========================
+
+START_KEY = "k"
+EXIT_KEY = "l"
+
+# Mouse1-klikin jälkeen odotus ennen tarkkailua
+ARM_DELAY = 0.40
+
+# Kuinka usein ruutu tarkistetaan
+CHECK_INTERVAL = 0.05
+
+# Space-painalluksen kesto
+SPACE_HOLD = 0.12
+
+# Vihreän tunnistus juuri tuon screenshotin perusteella
+GREEN_G_MIN = 170
+RED_MAX = 90
+BLUE_MAX = 90
+GREEN_OVER_RED = 80
+GREEN_OVER_BLUE = 60
+
+# Kuinka monta osumaa tarvitaan ennen kuin painetaan space
+# Jos ei laukea, laske esim. 80
+# Jos laukeaa liian helposti, nosta esim. 250
+MIN_MATCHING_PIXELS = 150
+
+# Kuinka usein tulostetaan logi
+LOG_INTERVAL = 0.35
+
+# =========================
+# SISÄISET MUUTTUJAT
+# =========================
+
+armed = False
+start_requested = False
+last_log_time = 0
+
+pydirectinput.PAUSE = 0
+pydirectinput.FAILSAFE = False
+
+
+def do_left_click():
+    pydirectinput.mouseDown(button="left")
+    time.sleep(0.03)
+    pydirectinput.mouseUp(button="left")
+
+
+def press_space():
+    pydirectinput.keyDown("space")
+    time.sleep(SPACE_HOLD)
+    pydirectinput.keyUp("space")
+
+
+def grab_screen():
+    img = ImageGrab.grab().convert("RGB")
+    return np.array(img, dtype=np.uint8)
+
+
+def count_strike_green_pixels(img):
+    r = img[:, :, 0].astype(np.int16)
+    g = img[:, :, 1].astype(np.int16)
+    b = img[:, :, 2].astype(np.int16)
+
+    mask = (
+        (g >= GREEN_G_MIN) &
+        (r <= RED_MAX) &
+        (b <= BLUE_MAX) &
+        (g >= r + GREEN_OVER_RED) &
+        (g >= b + GREEN_OVER_BLUE)
+    )
+
+    return int(np.count_nonzero(mask))
+
+
+def request_start():
+    global start_requested
+    if not armed:
+        start_requested = True
+        print("[INFO] K painettu -> klikataan Mouse1 ja aloitetaan tarkkailu")
+
+
+keyboard.add_hotkey(START_KEY, request_start)
+
+print("====================================")
+print(f"{START_KEY} = Mouse1 + koko näytön vihreän tarkkailu")
+print("Kun STRIKE-tyyppistä vihreää löytyy tarpeeksi -> SPACE")
+print(f"{EXIT_KEY} = lopeta")
+print("====================================")
+
+while True:
+    if keyboard.is_pressed(EXIT_KEY):
+        print("[INFO] Lopetetaan.")
+        break
+
+    if start_requested and not armed:
+        start_requested = False
+        print("[INFO] Klikataan Mouse1")
+        do_left_click()
+        time.sleep(ARM_DELAY)
+        armed = True
+        print("[INFO] Tarkkailu aktiivinen")
+
+    if armed:
+        img = grab_screen()
+        matches = count_strike_green_pixels(img)
+
+        now = time.time()
+        if now - last_log_time >= LOG_INTERVAL:
+            print(f"[INFO] Strike-vihreitä pikseleitä: {matches}")
+            last_log_time = now
+
+        if matches >= MIN_MATCHING_PIXELS:
+            print(f"[INFO] Oikea vihreä havaittu ({matches} px) -> SPACE")
+            press_space()
+            armed = False
+            time.sleep(0.3)
+
+    time.sleep(CHECK_INTERVAL)
