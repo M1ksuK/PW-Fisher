@@ -1,0 +1,153 @@
+import tkinter as tk
+
+# =========================================================
+# MUOKKAA NÄITÄ ARVOJA
+# =========================================================
+AREAS = {
+    "Vihreän tekstin tarkkailu": {
+        "x": 680,
+        "y": 200,
+        "w": 180,
+        "h": 40,
+        "color": "#00ff88"
+    },
+    "Kalan tarkkailu": {
+        "x": 700,
+        "y": 500,
+        "w": 220,
+        "h": 80,
+        "color": "#00bfff"
+    },
+    "Vihreän alueen tarkkailu": {
+        "x": 700,
+        "y": 600,
+        "w": 220,
+        "h": 80,
+        "color": "#ffd700"
+    },
+    "Palkin lopun tarkkailu": {
+        "x": 1050,
+        "y": 600,
+        "w": 120,
+        "h": 80,
+        "color": "#ff4d4d"
+    },
+}
+
+WINDOW_ALPHA = 0.35
+REFRESH_MS = 50
+# =========================================================
+
+
+class OverlayApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Alueiden säätö")
+        self.root.attributes("-topmost", True)
+        self.root.attributes("-fullscreen", True)
+        self.root.attributes("-alpha", WINDOW_ALPHA)
+        self.root.configure(bg="black")
+
+        self.canvas = tk.Canvas(
+            self.root,
+            bg="black",
+            highlightthickness=0
+        )
+        self.canvas.pack(fill="both", expand=True)
+
+        self.info_frame = tk.Frame(self.root, bg="#111111")
+        self.info_frame.place(x=20, y=20)
+
+        self.info_label = tk.Label(
+            self.info_frame,
+            text="",
+            justify="left",
+            fg="white",
+            bg="#111111",
+            font=("Consolas", 11)
+        )
+        self.info_label.pack(padx=10, pady=10)
+
+        self.help_label = tk.Label(
+            self.root,
+            text="ESC = sulje | muuta koordinaatteja koodista",
+            fg="white",
+            bg="#111111",
+            font=("Consolas", 11)
+        )
+        self.help_label.place(x=20, y=220)
+
+        self.root.bind("<Escape>", lambda e: self.root.destroy())
+
+        self.update_overlay()
+
+    def draw_area(self, name, area):
+        x = area["x"]
+        y = area["y"]
+        w = area["w"]
+        h = area["h"]
+        color = area["color"]
+
+        self.canvas.create_rectangle(
+            x, y, x + w, y + h,
+            outline=color,
+            width=3
+        )
+
+        text_bg_w = max(220, len(name) * 8)
+        text_bg_h = 24
+
+        self.canvas.create_rectangle(
+            x,
+            y - text_bg_h,
+            x + text_bg_w,
+            y,
+            fill=color,
+            outline=color
+        )
+
+        self.canvas.create_text(
+            x + 8,
+            y - text_bg_h / 2,
+            anchor="w",
+            text=name,
+            fill="black",
+            font=("Consolas", 11, "bold")
+        )
+
+        coord_text = f"x={x}, y={y}, w={w}, h={h}"
+        self.canvas.create_text(
+            x + 8,
+            y + h + 10,
+            anchor="nw",
+            text=coord_text,
+            fill=color,
+            font=("Consolas", 10, "bold")
+        )
+
+    def update_overlay(self):
+        self.canvas.delete("all")
+
+        for name, area in AREAS.items():
+            self.draw_area(name, area)
+
+        info_lines = ["Alueet:\n"]
+        for name, area in AREAS.items():
+            info_lines.append(
+                f"{name}\n"
+                f"  x={area['x']}  y={area['y']}  w={area['w']}  h={area['h']}\n"
+            )
+
+        self.info_label.config(text="\n".join(info_lines))
+
+        self.root.after(REFRESH_MS, self.update_overlay)
+
+
+def main():
+    root = tk.Tk()
+    app = OverlayApp(root)
+    root.mainloop()
+
+
+if __name__ == "__main__":
+    main()
